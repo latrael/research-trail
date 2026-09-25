@@ -1,4 +1,5 @@
 import { browserApi } from '../platform/chrome'
+import { formatResearchMarkdown } from '../research-export'
 import type {
   AppViewModel,
   ContextNodeView,
@@ -31,12 +32,15 @@ const state: {
   editing: EditTarget
   deleteCandidateId?: string
   clearPending: boolean
+  exportStatus?: string
 } = {
   view: 'context',
   loading: true,
   editing: undefined,
   clearPending: false,
 }
+
+let exportStatusTimer: number | undefined
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -57,6 +61,28 @@ function button(label: string, className = 'button button--quiet'): HTMLButtonEl
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+}
+
+async function writeClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return
+  } catch {
+    // Chrome extension pages normally support the async Clipboard API. Keep a
+    // synchronous fallback for older or policy-restricted installations.
+  }
+
+  const textarea = element('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.append(textarea)
+  textarea.focus()
+  textarea.select()
+  const copied = document.execCommand('copy')
+  textarea.remove()
+  if (!copied) throw new Error('Chrome could not copy the Markdown to your clipboard.')
 }
 
 async function sendRequest<T>(request: RuntimeRequest): Promise<T> {
@@ -553,6 +579,48 @@ function renderCart(container: HTMLElement): void {
       'Select text on any web page, right-click, and choose “Add to Research Cart.”',
     )
   } else {
+    const exportBar = element('section', 'export-bar')
+    const exportCopy = element('div', 'export-bar__copy')
+    exportCopy.append(element('h2', '', 'Use your evidence'))
+    exportCopy.append(
+      element(
+        'p',
+        '',
+        `${items.length} human-selected ${items.length === 1 ? 'quote' : 'quotes'}, each paired with its source.`,
+      ),
+    )
+
+    const exportButton = button('Export as Markdown', 'button button--primary export-bar__button')
+    exportButton.addEventListener('click', () => {
+      exportButton.disabled = true
+      exportButton.textContent = 'Copying…'
+      state.error = undefined
+
+      void writeClipboard(formatResearchMarkdown(items))
+        .then(() => {
+          state.exportStatus = `${items.length} ${items.length === 1 ? 'item' : 'items'} copied with citations.`
+          if (exportStatusTimer !== undefined) window.clearTimeout(exportStatusTimer)
+          exportStatusTimer = window.setTimeout(() => {
+            state.exportStatus = undefined
+            render()
+          }, 3_000)
+          render()
+        })
+        .catch((error: unknown) => {
+          state.error = errorMessage(error)
+          render()
+        })
+    })
+    exportBar.append(exportCopy, exportButton)
+
+    if (state.exportStatus) {
+      const status = element('p', 'export-status', state.exportStatus)
+      status.setAttribute('role', 'status')
+      status.setAttribute('aria-live', 'polite')
+      exportBar.append(status)
+    }
+
+    panel.append(exportBar)
     const list = element('div', 'research-list')
     items.forEach((item) => list.append(researchCard(item)))
     panel.append(list)

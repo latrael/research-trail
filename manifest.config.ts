@@ -7,7 +7,7 @@ export default defineManifest({
   description: 'Preserve why tabs were opened and collect sourced evidence while you research.',
   version: pkg.version,
   minimum_chrome_version: '114',
-  permissions: ['tabs', 'storage', 'contextMenus', 'sidePanel'],
+  permissions: ['tabs', 'storage', 'contextMenus', 'sidePanel', 'clipboardWrite'],
   action: {
     default_title: 'Open Research Trail',
   },

@@ -658,6 +658,51 @@ textarea:focus-visible {
   min-height: 330px;
 }
 
+.export-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #d5cfc4;
+  border-radius: 7px;
+  background: #ebe6dc;
+}
+
+.export-bar__copy {
+  min-width: 0;
+}
+
+.export-bar__copy h2,
+.export-bar__copy p,
+.export-status {
+  margin: 0;
+}
+
+.export-bar__copy h2 {
+  color: #2c2923;
+  font-size: 12px;
+}
+
+.export-bar__copy p {
+  margin-top: 4px;
+  color: #726c62;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.export-bar__button {
+  white-space: nowrap;
+}
+
+.export-status {
+  grid-column: 1 / -1;
+  color: #356846;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .research-list {
   gap: 12px;
 }
